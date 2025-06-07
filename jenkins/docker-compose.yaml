@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  jenkins:
+    user: root
+    container_name: jenkins
+    image: jenkins/jenkins:lts-jdk17
+    ports:
+      # Map port 8080 of the host to port 8080 within the container to access Jenkins web interface.
+      - "8080:8080"
+    volumes:
+      - /volumes/jenkins:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
