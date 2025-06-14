@@ -1,0 +1,57 @@
+pipeline {
+    agent {
+        label 'maven'
+    }
+    environment {
+        REPO_URL = "https://github.com/HansFarro/hello-world-java.git"
+        IMAGE_NAME = "hello-world-java"
+        CONTAINER_NAME = "java-app"
+        PORT = 8085
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                deleteDir()
+                git branch: 'develop', url: "${env.REPO_URL}"
+            }
+        }
+        stage('CodeQuality') {
+            steps {
+                script {
+                    sh 'mvn clean test'
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                script {
+                    sh 'mvn clean install'
+                }
+            }
+        }
+        stage('Package') {
+            steps {
+                script {
+                    sh "docker build --build-arg PORT=${env.PORT} -t ${env.IMAGE_NAME} -f cfg/Dockerfile ."
+                }
+            }
+        }
+        stage('Delivery'){
+            steps {
+                script {
+                    // Detener y eliminar contenedor si existe
+                    sh "docker stop ${env.CONTAINER_NAME} || true"
+                    sh "docker rm ${env.CONTAINER_NAME} || true"
+                    
+                    docker.image("${env.IMAGE_NAME}").run("--name ${env.CONTAINER_NAME} -p ${env.PORT}:${env.PORT} -d")
+                    
+                    // Esperar inicialización
+                    sleep 10
+                    
+                    // Obtener logs para diagnóstico
+                    sh "docker logs ${env.CONTAINER_NAME} --tail 50"
+                }
+            }
+        }
+    }
+}
